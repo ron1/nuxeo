@@ -9,6 +9,7 @@
   </parent>
 
   <artifactId>nuxeo-core-redis</artifactId>
+  <version>7.2-NXPRDS1</version>
   <name>Nuxeo Core Redis</name>
 
   <dependencies>
