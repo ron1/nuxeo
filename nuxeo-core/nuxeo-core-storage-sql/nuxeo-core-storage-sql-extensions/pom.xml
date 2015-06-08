@@ -10,6 +10,7 @@
 
   <groupId>org.nuxeo.lib.core</groupId>
   <artifactId>nuxeo-core-storage-sql-extensions</artifactId>
+  <version>7.2-NXPSQL1</version>
   <name>Nuxeo Core SQL Storage DB Extensions</name>
   <description>Nuxeo Core: SQL Storage DB Extensions.</description>
 
