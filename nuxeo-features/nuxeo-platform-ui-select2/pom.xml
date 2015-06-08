@@ -6,6 +6,7 @@
     <version>7.2</version>
   </parent>
   <artifactId>nuxeo-platform-ui-select2</artifactId>
+  <version>7.2-NXPUIS1</version>
   <name>Select2 Integration</name>
   <description>
     Simple module to integarte select2 JS widget system with Nuxeo Widget system
