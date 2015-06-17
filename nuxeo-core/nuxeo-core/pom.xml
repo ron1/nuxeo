@@ -9,6 +9,7 @@
 
   <artifactId>nuxeo-core</artifactId>
   <name>Nuxeo Core</name>
+  <version>7.2-NXPCR1</version>
   <description>Nuxeo Core: The Core.</description>
 
   <dependencies>
