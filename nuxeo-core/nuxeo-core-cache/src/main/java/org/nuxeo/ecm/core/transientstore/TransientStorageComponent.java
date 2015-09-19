@@ -90,9 +90,7 @@ public class TransientStorageComponent extends DefaultComponent implements Trans
 
     @Override
     public void deactivate(ComponentContext context) {
-        for (TransientStore store : stores.values()) {
-            store.shutdown();
-        }
+        stores.values().forEach(TransientStore::shutdown);
         super.deactivate(context);
     }
 
