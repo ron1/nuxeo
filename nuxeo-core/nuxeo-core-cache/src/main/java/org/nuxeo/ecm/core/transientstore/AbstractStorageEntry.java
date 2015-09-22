@@ -112,6 +112,7 @@ public abstract class AbstractStorageEntry implements StorageEntry {
                 cached.put("filename", blob.getFilename());
                 cached.put("encoding", blob.getEncoding());
                 cached.put("mimetype", blob.getMimeType());
+                cached.put("digest", blob.getDigest());
                 cachedBlobs.add(cached);
             }
             blobs = null;
@@ -130,6 +131,7 @@ public abstract class AbstractStorageEntry implements StorageEntry {
             blob.setEncoding(info.get("encoding"));
             blob.setMimeType(info.get("mimetype"));
             blob.setFilename(info.get("filename"));
+            blob.setDigest(info.get("digest"));
             blobs.add(blob);
         }
         cachedBlobs = null;
