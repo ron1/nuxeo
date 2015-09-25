@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.nuxeo.ecm.core.api.Blob;
+import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.api.impl.blob.FileBlob;
 import org.nuxeo.ecm.core.transientstore.api.StorageEntry;
 
@@ -104,10 +105,17 @@ public abstract class AbstractStorageEntry implements StorageEntry {
         if (hasBlobs) {
             cachedBlobs = new ArrayList<Map<String,String>>();
             for (Blob blob : blobs) {
-                Map<String, String> cached = new HashMap<String, String>();
-                File cachedFile = new File (directory,UUID.randomUUID().toString());
-                blob.transferTo(cachedFile);
-                cachedFile.deleteOnExit();
+                Map<String, String> cached = new HashMap<>();
+                File cachedFile = new File(directory, UUID.randomUUID().toString());
+                try {
+                    if (blob instanceof FileBlob && ((FileBlob) blob).isTemporary()) {
+                        ((FileBlob) blob).moveTo(cachedFile);
+                    } else {
+                        blob.transferTo(cachedFile);
+                    }
+                } catch (IOException e) {
+                    throw new NuxeoException(e);
+                }
                 cached.put("file", cachedFile.getAbsolutePath());
                 cached.put("filename", blob.getFilename());
                 cached.put("encoding", blob.getEncoding());
