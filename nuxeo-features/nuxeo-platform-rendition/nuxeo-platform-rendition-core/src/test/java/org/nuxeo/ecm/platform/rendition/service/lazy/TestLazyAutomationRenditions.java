@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.CoreSession;
+import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.event.EventService;
 import org.nuxeo.ecm.core.test.CoreFeature;
 import org.nuxeo.ecm.platform.rendition.Rendition;
@@ -41,6 +42,9 @@ import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.LocalDeploy;
 
 import com.google.inject.Inject;
+import org.nuxeo.runtime.transaction.TransactionHelper;
+
+import javax.ws.rs.HEAD;
 
 @Deploy({ "org.nuxeo.ecm.core.cache", "org.nuxeo.ecm.platform.rendition.api", "org.nuxeo.ecm.platform.rendition.core",
         "org.nuxeo.ecm.automation.core", "org.nuxeo.ecm.platform.mimetype.core" })
@@ -59,6 +63,9 @@ public class TestLazyAutomationRenditions {
     RenditionService rs;
 
     @Inject
+    EventService eventService;
+
+    @Inject
     CoreSession session;
 
     @AfterClass
@@ -68,9 +75,20 @@ public class TestLazyAutomationRenditions {
 
     @Test
     public void testRenditions() throws Exception {
+        doTestRenditions(false);
+    }
+
+    @Test
+    public void testStoreRenditions() throws Exception {
+        doTestRenditions(true);
+    }
+
+    protected void doTestRenditions(boolean store) throws Exception {
+        DocumentModel folder = createFolder();
         assertNotNull(rs);
-        Rendition rendition = rs.getRendition(session.getRootDocument(), "lazyAutomation");
+        Rendition rendition = rs.getRendition(folder, "lazyAutomation", store);
         assertNotNull(rendition);
+        assertFalse(rendition.isStored());
         Blob blob = rendition.getBlob();
         assertEquals(0, blob.getLength());
         assertTrue(blob.getMimeType().contains("empty=true"));
@@ -78,12 +96,13 @@ public class TestLazyAutomationRenditions {
         Thread.sleep(1000);
         Framework.getService(EventService.class).waitForAsyncCompletion(5000);
 
-        rendition = rs.getRendition(session.getRootDocument(), "lazyAutomation");
+        rendition = rs.getRendition(folder, "lazyAutomation", store);
+        assertEquals(store, rendition.isStored());
         blob = rendition.getBlob();
         assertFalse(blob.getMimeType().contains("empty=true"));
-        assertEquals(session.getRootDocument().getId() + ".txt", blob.getFilename());
+        assertEquals("dummy.txt", blob.getFilename());
         String data = IOUtils.toString(blob.getStream());
-        assertEquals(session.getRootDocument().getId(), data);
+        assertEquals("dummy", data.substring(0, "dummy".length()));
     }
 
     @Test
@@ -113,5 +132,17 @@ public class TestLazyAutomationRenditions {
         assertEquals("a.txt", AutomationRenderer.getFilenameWithExtension("a.b c", "text/plain", "x"));
         assertEquals("file.txt", AutomationRenderer.getFilenameWithExtension("file", "text/plain", "x"));
     }
+
+    protected DocumentModel createFolder() {
+        DocumentModel folder = session.createDocumentModel("/", "dummy", "Folder");
+        folder = session.createDocument(folder);
+        session.save();
+        TransactionHelper.commitOrRollbackTransaction();
+        eventService.waitForAsyncCompletion();
+        TransactionHelper.startTransaction();
+        folder = session.getDocument(folder.getRef());
+        return folder;
+    }
+
 
 }

@@ -30,9 +30,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.ClientException;
+import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.ecm.core.api.DocumentRef;
+import org.nuxeo.ecm.core.api.IdRef;
 import org.nuxeo.ecm.core.api.LifeCycleConstants;
 import org.nuxeo.ecm.core.api.UnrestrictedSessionRunner;
 import org.nuxeo.ecm.core.api.VersioningOption;
@@ -58,13 +61,11 @@ public class RenditionCreator extends UnrestrictedSessionRunner {
 
     public static final String FILE = "File";
 
-    protected DocumentRef renditionRef;
-
-    protected DocumentModel detachedDendition;
+    protected DocumentModel detachedRendition;
 
     protected String liveDocumentId;
 
-    protected DocumentRef versionDocumentRef;
+    protected String versionDocumentId;
 
     protected Blob renditionBlob;
 
@@ -74,65 +75,102 @@ public class RenditionCreator extends UnrestrictedSessionRunner {
             Blob renditionBlob, String renditionName) {
         super(session);
         this.liveDocumentId = liveDocument.getId();
-        this.versionDocumentRef = versionDocument.getRef();
+        this.versionDocumentId = versionDocument == null ? null : versionDocument.getId();
         this.renditionBlob = renditionBlob;
         this.renditionName = renditionName;
     }
 
-    public DocumentRef getRenditionDocumentRef() {
-        return renditionRef;
+    public DocumentModel getDetachedRendition() {
+        return detachedRendition;
     }
 
+    @Deprecated
     public DocumentModel getDetachedDendition() {
-        return detachedDendition;
+        return detachedRendition;
     }
 
     @Override
-    public void run() throws ClientException {
-        DocumentModel versionDocument = session.getDocument(versionDocumentRef);
-        DocumentModel rendition = createRenditionDocument(versionDocument);
+    public void run() {
+        DocumentModel liveDocument = session.getDocument(new IdRef(liveDocumentId));
+        DocumentModel sourceDocument = liveDocument.isVersionable() ? session.getDocument(new IdRef(versionDocumentId))
+                : liveDocument;
+        DocumentModel rendition = createRenditionDocument(sourceDocument);
         removeBlobs(rendition);
         updateMainBlob(rendition);
         updateIconAndSizeFields(rendition);
 
         // create a copy of the doc
-        rendition = session.createDocument(rendition);
-        // be sure to have the same version info
-        setCorrectVersion(rendition, versionDocument);
-        // set ACL
-        // giveReadRightToUser(rendition);
+        if (rendition.getId() == null) {
+            rendition = session.createDocument(rendition);
+        }
+        if (sourceDocument.isVersionable()) {
+            // be sure to have the same version info
+            setCorrectVersion(rendition, sourceDocument);
+        } else {
+            // set ACL
+            giveReadRightToUser(rendition);
+        }
         // do not apply default versioning to rendition
         rendition.putContextData(VersioningService.VERSIONING_OPTION, VersioningOption.NONE);
         rendition = session.saveDocument(rendition);
 
-        // rendition is checkout : make it checkin
-        DocumentRef renditionCheckoutRef = rendition.getRef();
-        renditionRef = rendition.checkIn(VersioningOption.NONE, null);
-        session.removeDocument(renditionCheckoutRef);
-        rendition = session.getDocument(renditionRef);
+        if (sourceDocument.isVersionable()) {
+            // rendition is checked out : check it in
+            DocumentRef renditionRef = rendition.checkIn(VersioningOption.NONE, null);
+            rendition = session.getDocument(renditionRef);
+        }
         session.save();
 
         rendition.detach(true);
-        detachedDendition = rendition;
+        detachedRendition = rendition;
     }
 
-    protected DocumentModel createRenditionDocument(DocumentModel versionDocument) throws ClientException {
-        String doctype = versionDocument.getType();
+    protected DocumentModel createRenditionDocument(DocumentModel sourceDocument) throws ClientException {
+        String doctype = sourceDocument.getType();
         String renditionMimeType = renditionBlob.getMimeType();
-        if (versionDocument.getAdapter(BlobHolder.class) instanceof DocumentStringBlobHolder
-                && !(renditionMimeType.startsWith("text/") || renditionMimeType.startsWith("application/xhtml"))) {
+        boolean isSourceFolder = sourceDocument.isFolder();
+        if (isSourceFolder
+                || (sourceDocument.getAdapter(BlobHolder.class) instanceof DocumentStringBlobHolder
+                        && !(renditionMimeType.startsWith("text/")
+                                || renditionMimeType.startsWith("application/xhtml")))) {
+            // We have a Folder or
             // We have a Note or other blob holder that can only hold strings, but the rendition is not a string-related
-            // MIME type. We'll have to create a File instead to hold it.
+            // MIME type.
+            // In either case, we'll have to create a File to hold it.
             doctype = FILE;
         }
-        DocumentModel rendition = session.createDocumentModel(null, versionDocument.getName(), doctype);
-        rendition.copyContent(versionDocument);
+
+        DocumentModel rendition = null;
+        String renditionSourcePropertyName = (isSourceFolder)
+                ? RENDITION_SOURCE_ID_PROPERTY : RENDITION_SOURCE_VERSIONABLE_ID_PROPERTY;
+        DocumentModelList existingRenditions;
+        try (CoreSession userSession = CoreInstance.openCoreSession(session.getRepositoryName(),
+                getOriginatingUsername())) {
+            existingRenditions = userSession.query("select * from  " + doctype
+                    + " where ecm:isProxy = 0 AND ecm:mixinType ='" + RENDITION_FACET + "' AND "
+                    + renditionSourcePropertyName + "='" + liveDocumentId + "' AND "
+                    + RENDITION_NAME_PROPERTY + "='" + renditionName + "'");
+        }
+        if (existingRenditions.size() > 0) {
+            rendition = existingRenditions.get(0);
+            rendition = session.getDocument(rendition.getRef());
+            if (rendition.isVersion()) {
+                String sid = rendition.getVersionSeriesId();
+                rendition = session.getDocument(new IdRef(sid));
+            }
+        } else {
+            rendition = session.createDocumentModel(null, sourceDocument.getName(), doctype);
+        }
+
+        rendition.copyContent(sourceDocument);
         rendition.getContextData().putScopedValue(LifeCycleConstants.INITIAL_LIFECYCLE_STATE_OPTION_NAME,
-                versionDocument.getCurrentLifeCycleState());
+                sourceDocument.getCurrentLifeCycleState());
 
         rendition.addFacet(RENDITION_FACET);
-        rendition.setPropertyValue(RENDITION_SOURCE_ID_PROPERTY, versionDocument.getId());
-        rendition.setPropertyValue(RENDITION_SOURCE_VERSIONABLE_ID_PROPERTY, liveDocumentId);
+        rendition.setPropertyValue(RENDITION_SOURCE_ID_PROPERTY, sourceDocument.getId());
+        if (sourceDocument.isVersionable()) {
+            rendition.setPropertyValue(RENDITION_SOURCE_VERSIONABLE_ID_PROPERTY, liveDocumentId);
+        }
         rendition.setPropertyValue(RENDITION_NAME_PROPERTY, renditionName);
         return rendition;
     }
