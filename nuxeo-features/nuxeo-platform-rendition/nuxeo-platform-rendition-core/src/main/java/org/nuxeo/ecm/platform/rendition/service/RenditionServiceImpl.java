@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jboss.el.ExpressionFactoryImpl;
-import org.nuxeo.common.utils.StringUtils;
 import org.nuxeo.ecm.automation.AutomationService;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.ClientException;
@@ -40,7 +39,6 @@ import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.RenditionException;
 import org.nuxeo.ecm.platform.rendition.extension.DefaultAutomationRenditionProvider;
 import org.nuxeo.ecm.platform.rendition.extension.RenditionProvider;
-import org.nuxeo.ecm.platform.rendition.impl.LazyRendition;
 import org.nuxeo.ecm.platform.rendition.impl.LiveRendition;
 import org.nuxeo.ecm.platform.rendition.impl.StoredRendition;
 import org.nuxeo.runtime.api.Framework;
@@ -136,52 +134,46 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
     }
 
     @Override
-    public DocumentRef storeRendition(DocumentModel source, String renditionDefinitionName) throws RenditionException {
-
+    public DocumentRef storeRendition(DocumentModel source, String renditionDefinitionName) {
         Rendition rendition = getRendition(source, renditionDefinitionName, true);
-
-        return (rendition == null) ? null : rendition.getHostDocument().getRef();
+        return rendition == null ? null : rendition.getHostDocument().getRef();
     }
 
-    protected DocumentModel storeRendition(DocumentModel sourceDocument, List<Blob> renderedBlobs, String name)
-            throws RenditionException {
-        try {
-            Blob renderedBlob = renderedBlobs.get(0);
-            if (!LazyRendition.isBlobComputationCompleted(renderedBlob)) {
-                return null;
-            }
-            CoreSession session = sourceDocument.getCoreSession();
-            DocumentModel version = null;
-            boolean isVersionable = sourceDocument.isVersionable();
-            if (isVersionable) {
-                DocumentRef versionRef = createVersionIfNeeded(sourceDocument, session);
-                version = session.getDocument(versionRef);
-            }
-            RenditionCreator rc = new RenditionCreator(session, sourceDocument, version, renderedBlob, name);
-            rc.runUnrestricted();
-
-            DocumentModel detachedRendition = rc.getDetachedRendition();
-
-            detachedRendition.attach(sourceDocument.getSessionId());
-            return detachedRendition;
-        } catch (Exception e) {
-            throw new RenditionException("Unable to store rendition", e);
+    protected DocumentModel storeRendition(DocumentModel sourceDocument, Rendition rendition, String name) {
+        if (!rendition.isCompleted()) {
+            return null;
         }
+        List<Blob> renderedBlobs = rendition.getBlobs();
+        Blob renderedBlob = renderedBlobs.get(0);
+        CoreSession session = sourceDocument.getCoreSession();
+        DocumentModel version = null;
+        boolean isVersionable = sourceDocument.isVersionable();
+        if (isVersionable) {
+            DocumentRef versionRef = createVersionIfNeeded(sourceDocument, session);
+            version = session.getDocument(versionRef);
+        }
+        RenditionCreator rc = new RenditionCreator(session, sourceDocument, version, renderedBlob, name);
+        rc.runUnrestricted();
+
+        DocumentModel detachedRendition = rc.getDetachedRendition();
+
+        detachedRendition.attach(sourceDocument.getSessionId());
+        return detachedRendition;
     }
 
-    protected DocumentRef createVersionIfNeeded(DocumentModel source, CoreSession session) throws ClientException {
-        DocumentRef versionRef = null;
+    protected DocumentRef createVersionIfNeeded(DocumentModel source, CoreSession session) {
         if (source.isVersionable()) {
             if (source.isVersion()) {
-                versionRef = source.getRef();
+                return source.getRef();
             } else if (source.isCheckedOut()) {
-                versionRef = session.checkIn(source.getRef(), VersioningOption.MINOR, null);
+                DocumentRef versionRef = session.checkIn(source.getRef(), VersioningOption.MINOR, null);
                 source.refresh(DocumentModel.REFRESH_STATE, null);
+                return versionRef;
             } else {
-                versionRef = session.getLastDocumentVersionRef(source.getRef());
+                return session.getLastDocumentVersionRef(source.getRef());
             }
         }
-        return versionRef;
+        return null;
     }
 
     /**
@@ -268,12 +260,12 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
     }
 
     @Override
-    public Rendition getRendition(DocumentModel doc, String renditionName) throws RenditionException {
+    public Rendition getRendition(DocumentModel doc, String renditionName) {
         return getRendition(doc, renditionName, false);
     }
 
     @Override
-    public Rendition getRendition(DocumentModel doc, String renditionName, boolean store) throws RenditionException {
+    public Rendition getRendition(DocumentModel doc, String renditionName, boolean store) {
 
         RenditionDefinition renditionDefinition = renditionDefinitions.get(renditionName);
         if (renditionDefinition == null) {
@@ -290,25 +282,21 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
 
         DocumentModel stored = null;
         boolean isVersionable = doc.isVersionable();
-        try {
-            if (!isVersionable || !doc.isCheckedOut()) {
-                // stored renditions are only done against a non-versionable doc
-                // or a versionable doc that is not checkedout
-                RenditionFinder finder = new RenditionFinder(doc, renditionName);
-                if (isVersionable) {
-                    finder.runUnrestricted();
-                } else {
-                    finder.run();
-                }
-                // retrieve the Detached stored rendition doc
-                stored = finder.getStoredRendition();
-                // re-attach the detached doc
-                if (stored != null) {
-                    stored.attach(doc.getCoreSession().getSessionId());
-                }
+        if (!isVersionable || !doc.isCheckedOut()) {
+            // stored renditions are only done against a non-versionable doc
+            // or a versionable doc that is not checkedout
+            RenditionFinder finder = new RenditionFinder(doc, renditionName);
+            if (isVersionable) {
+                finder.runUnrestricted();
+            } else {
+                finder.run();
             }
-        } catch (ClientException e) {
-            throw new RenditionException("Error while searching for stored rendition", e);
+            // retrieve the Detached stored rendition doc
+            stored = finder.getStoredRendition();
+            // re-attach the detached doc
+            if (stored != null) {
+                stored.attach(doc.getCoreSession().getSessionId());
+            }
         }
 
         if (stored != null) {
@@ -318,7 +306,7 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
         LiveRendition rendition = new LiveRendition(doc, renditionDefinition);
 
         if (store) {
-            DocumentModel storedRenditionDoc = storeRendition(doc, rendition.getBlobs(), renditionDefinition.getName());
+            DocumentModel storedRenditionDoc = storeRendition(doc, rendition, renditionDefinition.getName());
             if (storedRenditionDoc != null) {
                 return new StoredRendition(storedRenditionDoc, renditionDefinition);
             } else {
