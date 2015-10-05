@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.nuxeo.ecm.platform</groupId>
   <artifactId>nuxeo-platform-rendition-core</artifactId>
-  <version>7.2-NXPRND1</version>
+  <version>7.2-NXPRND2-SNAPSHOT</version>
   <name>Nuxeo Platform Rendition Core</name>
   <description>Nuxeo Platform Rendition Core</description>
 
@@ -15,6 +15,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.platform</groupId>
       <artifactId>nuxeo-platform-rendition-api</artifactId>
+      <version>7.2-NXPRND2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
