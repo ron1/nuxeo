@@ -123,7 +123,8 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
 
         StringBuffer sb = new StringBuffer(doc.getId());
         sb.append("::");
-        Calendar modif = (Calendar) doc.getPropertyValue("dc:modified");
+        String modificationDatePropertyName = def.getSourceDocumentModificationDatePropertyName();
+        Calendar modif = (Calendar) doc.getPropertyValue(modificationDatePropertyName);
         if (modif != null) {
             sb.append(modif.getTimeInMillis());
             sb.append("::");
