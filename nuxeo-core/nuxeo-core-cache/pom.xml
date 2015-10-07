@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-core-cache</artifactId>
-  <version>7.2-NXPCCH1-SNAPSHOT</version>
+  <version>7.2-NXPCCH1</version>
   <name>Nuxeo Core Cache</name>
   <description>Nuxeo Core: Cache.</description>
 
