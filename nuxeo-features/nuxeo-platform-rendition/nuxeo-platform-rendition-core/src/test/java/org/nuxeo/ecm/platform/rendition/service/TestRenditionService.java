@@ -29,10 +29,12 @@ import static org.nuxeo.ecm.platform.rendition.Constants.RENDITION_SOURCE_VERSIO
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CyclicBarrier;
 
 import javax.inject.Inject;
 
@@ -45,6 +47,8 @@ import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentRef;
+import org.nuxeo.ecm.core.api.IdRef;
+import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.api.PathRef;
 import org.nuxeo.ecm.core.api.VersioningOption;
 import org.nuxeo.ecm.core.api.blobholder.BlobHolder;
@@ -265,6 +269,21 @@ public class TestRenditionService {
         assertTrue(rendition2.isStored());
         assertEquals(rendition.getHostDocument().getRef(), rendition2.getHostDocument().getRef());
 
+        // update the source Document
+        file.setPropertyValue("dc:description", "I have been updated again");
+        file = session.saveDocument(file);
+        assertEquals("0.2+", file.getVersionLabel());
+
+        // needed for MySQL otherwise version order could be random
+        DatabaseHelper.DATABASE.maybeSleepToNextSecond();
+
+        // now store rendition for version 0.3
+        rendition = renditionService.getRendition(file, PDF_RENDITION_DEFINITION, true);
+        assertEquals("0.3", rendition.getHostDocument().getVersionLabel());
+        assertTrue(rendition.isStored());
+
+        assertTrue(rendition.getHostDocument().isVersion());
+
     }
 
     @Test
@@ -317,10 +336,16 @@ public class TestRenditionService {
             assertNotEquals(renditionDocument.getRef(), totoRendition.getHostDocument().getRef());
         }
 
+        DatabaseHelper.DATABASE.maybeSleepToNextSecond();
+
         // now "update" the folder
         folder = session.getDocument(folder.getRef());
         folder.setPropertyValue("dc:description", "I have been updated");
         folder = session.saveDocument(folder);
+        session.save();
+        nextTransaction();
+
+        folder = session.getDocument(folder.getRef());
         rendition = getRendition(folder, renditionName, false, isLazy);
         assertFalse(rendition.isStored());
         assertTrue(rendition.isCompleted());
@@ -525,6 +550,146 @@ public class TestRenditionService {
         rendition = renditionService.getRendition(folder, renditionName);
         assertNotNull(rendition);
         assertTrue(rendition.isStored());
+    }
+
+    @Test
+    public void shouldStoreLatestNonVersionedRendition() throws Exception {
+        final String repositoryName = session.getRepositoryName();
+        final String username = session.getPrincipal().getName();
+        final String renditionName = "renditionDefinitionWithCustomOperationChain";
+        final String sourceDocumentModificationDatePropertyName = "dc:issued";
+        DocumentModel folder = session.createDocumentModel("/", "dummy", "Folder");
+        folder.setPropertyValue(sourceDocumentModificationDatePropertyName, Calendar.getInstance());
+        folder = session.createDocument(folder);
+        session.save();
+        nextTransaction();
+        eventService.waitForAsyncCompletion();
+
+        folder = session.getDocument(folder.getRef());
+        final String folderId = folder.getId();
+
+        RenditionThread t1 = new RenditionThread(repositoryName, username, folderId,
+                renditionName, true);
+        RenditionThread t2 = new RenditionThread(repositoryName, username, folderId,
+                renditionName, false);
+        t1.start();
+        t2.start();
+
+        // Sync #1
+        RenditionThread.cyclicBarrier.await();
+
+        // now "update" the folder description
+        Calendar modificationDate = Calendar.getInstance();
+        String desc = "I have been updated";
+        folder = session.getDocument(folder.getRef());
+        folder.setPropertyValue("dc:description", desc);
+        folder.setPropertyValue(sourceDocumentModificationDatePropertyName, modificationDate);
+        folder = session.saveDocument(folder);
+
+        session.save();
+        nextTransaction();
+        eventService.waitForAsyncCompletion();
+
+        // Sync #2
+        RenditionThread.cyclicBarrier.await();
+
+        // Sync #3
+        RenditionThread.cyclicBarrier.await();
+
+        t1.join();
+        t2.join();
+
+        nextTransaction();
+        eventService.waitForAsyncCompletion();
+
+        // get the "updated" folder rendition
+        Rendition rendition = renditionService.getRendition(folder, renditionName, true);
+        assertNotNull(rendition);
+        assertTrue(rendition.isStored());
+        Calendar cal = rendition.getModificationDate();
+        assertTrue(!cal.before(modificationDate));
+        assertNotNull(rendition.getBlob());
+        assertTrue(rendition.getBlob().getString().contains(desc));
+
+        // verify the thread renditions
+        List<Rendition> renditions = Arrays.asList(
+                new Rendition[] { t1.getDetachedRendition(), t2.getDetachedRendition() });
+        for (Rendition rend : renditions) {
+            assertNotNull(rend);
+            assertTrue(rend.isStored());
+            assertTrue(!cal.before(rend.getModificationDate()));
+            assertNotNull(rend.getBlob());
+            assertTrue(rendition.getBlob().getString().contains(desc));
+        }
+    }
+
+    protected static class RenditionThread extends Thread {
+
+        public static final CyclicBarrier cyclicBarrier = new CyclicBarrier(3);
+
+        private final String repositoryName;
+
+        private final String username;
+
+        private final String docId;
+
+        private final String renditionName;
+
+        private final boolean delayed;
+
+        private Rendition detachedRendition;
+
+        public RenditionThread(String repositoryName, String username,
+                String docId, String renditionName, boolean delayed) {
+            super();
+            this.repositoryName = repositoryName;
+            this.username = username;
+            this.docId = docId;
+            this.renditionName = renditionName;
+            this.delayed = delayed;
+        }
+
+        @Override
+        public void run() {
+            TransactionHelper.startTransaction();
+            try {
+                try (CoreSession session = CoreInstance.openCoreSession(repositoryName, username)) {
+                    DocumentModel doc = session.getDocument(new IdRef(docId));
+
+                    doc.putContextData("delayed", Boolean.valueOf(delayed));
+
+                    RenditionService renditionService = Framework.getService(RenditionService.class);
+                    detachedRendition = renditionService.getRendition(doc, renditionName, true);
+
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                TransactionHelper.commitOrRollbackTransaction();
+                DatabaseHelper.DATABASE.maybeSleepToNextSecond();
+            }
+            if (!delayed) {
+                try {
+
+                    // Not-Delayed Sync #3
+                    RenditionThread.cyclicBarrier.await();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        public Rendition getDetachedRendition() {
+            return detachedRendition;
+        }
+
+    }
+
+    protected static void nextTransaction() {
+        if (TransactionHelper.isTransactionActiveOrMarkedRollback()) {
+            TransactionHelper.commitOrRollbackTransaction();
+            TransactionHelper.startTransaction();
+        }
     }
 
     @Test
