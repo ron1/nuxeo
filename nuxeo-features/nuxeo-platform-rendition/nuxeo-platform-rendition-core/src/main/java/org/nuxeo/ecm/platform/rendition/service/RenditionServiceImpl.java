@@ -130,6 +130,7 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
     protected ActionContext createActionContext(DocumentModel doc) {
         ActionContext actionContext = new ELActionContext(new ExpressionContext(), new ExpressionFactoryImpl());
         actionContext.setCurrentDocument(doc);
+        actionContext.setDocumentManager(doc.getCoreSession());
         return actionContext;
     }
 

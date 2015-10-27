@@ -126,17 +126,20 @@ public class TestRenditionService {
         assertFalse(renditionDefinitions.isEmpty());
         assertEquals(8, renditionDefinitions.size());
 
-        RenditionServiceImpl renditionServiceImpl = (RenditionServiceImpl) renditionService;
-        assertTrue(renditionServiceImpl.renditionDefinitions.containsKey(PDF_RENDITION_DEFINITION));
-        RenditionDefinition rd = renditionServiceImpl.renditionDefinitions.get(PDF_RENDITION_DEFINITION);
+        RenditionDefinition rd = renditionDefinitions.stream()
+                                                     .filter(renditionDefinition -> PDF_RENDITION_DEFINITION.equals(renditionDefinition.getName()))
+                                                     .findFirst()
+                                                     .get();
         assertNotNull(rd);
         assertEquals(PDF_RENDITION_DEFINITION, rd.getName());
         assertEquals("blobToPDF", rd.getOperationChain());
         assertEquals("label.rendition.pdf", rd.getLabel());
         assertTrue(rd.isEnabled());
 
-        assertTrue(renditionServiceImpl.renditionDefinitions.containsKey("renditionDefinitionWithCustomOperationChain"));
-        rd = renditionServiceImpl.renditionDefinitions.get("renditionDefinitionWithCustomOperationChain");
+        rd = renditionDefinitions.stream()
+                                 .filter(renditionDefinition -> "renditionDefinitionWithCustomOperationChain".equals(renditionDefinition.getName()))
+                                 .findFirst()
+                                 .get();
         assertNotNull(rd);
         assertEquals("renditionDefinitionWithCustomOperationChain", rd.getName());
         assertEquals("Dummy", rd.getOperationChain());
@@ -421,7 +424,6 @@ public class TestRenditionService {
         return folder;
     }
 
-
     @Test
     public void testRenderAProxyDocument() throws ClientException {
         DocumentModel file = createBlobFile();
@@ -612,8 +614,8 @@ public class TestRenditionService {
         assertTrue(rendition.getBlob().getString().contains(desc));
 
         // verify the thread renditions
-        List<Rendition> renditions = Arrays.asList(
-                new Rendition[] { t1.getDetachedRendition(), t2.getDetachedRendition() });
+        List<Rendition> renditions = Arrays.asList(new Rendition[] { t1.getDetachedRendition(),
+                t2.getDetachedRendition() });
         for (Rendition rend : renditions) {
             assertNotNull(rend);
             assertTrue(rend.isStored());
@@ -711,6 +713,11 @@ public class TestRenditionService {
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
         assertEquals(6, availableRenditionDefinitions.size());
 
+        doc = session.createDocumentModel("/", "folder", "Folder");
+        doc = session.createDocument(doc);
+        availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
+        assertEquals(7, availableRenditionDefinitions.size());
+
         runtimeHarness.undeployContrib(RENDITION_CORE, RENDITION_FILTERS_COMPONENT_LOCATION);
     }
 
@@ -732,6 +739,11 @@ public class TestRenditionService {
         session.saveDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
         assertEquals(6, availableRenditionDefinitions.size());
+
+        doc = session.createDocumentModel("/", "folder", "Folder");
+        doc = session.createDocument(doc);
+        availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
+        assertEquals(8, availableRenditionDefinitions.size());
 
         runtimeHarness.undeployContrib(RENDITION_CORE, RENDITION_DEFINITION_PROVIDERS_COMPONENT_LOCATION);
     }
