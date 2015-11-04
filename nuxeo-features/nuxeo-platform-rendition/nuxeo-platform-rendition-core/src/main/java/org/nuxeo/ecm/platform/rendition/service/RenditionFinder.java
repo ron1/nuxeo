@@ -25,7 +25,11 @@ import java.util.List;
 
 import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.UnrestrictedSessionRunner;
+import org.nuxeo.ecm.core.api.security.ACE;
+import org.nuxeo.ecm.core.api.security.ACL;
+import org.nuxeo.ecm.platform.usermanager.UserManager;
 import org.nuxeo.runtime.api.Framework;
 
 /**
@@ -87,7 +91,13 @@ public class RenditionFinder extends UnrestrictedSessionRunner {
 
         List<DocumentModel> docs = session.query(query.toString());
         if (docs.size() > 0) {
-            storedRendition = docs.get(0);
+            DocumentModel doc = docs.get(0);
+            // If current user is an Administrator, and stored rendition is not versionable and was created
+            // by a non-Administrator, ignore it
+            if (!isVersionable && isOriginatingUserAnAdminAndRenditionOriginatorANonAdmin(doc)) {
+                return;
+            }
+            storedRendition = doc;
             storedRendition.detach(true);
         }
     }
@@ -104,6 +114,22 @@ public class RenditionFinder extends UnrestrictedSessionRunner {
 
     protected static String formatTimestamp(Calendar cal) {
         return new SimpleDateFormat("'TIMESTAMP' ''yyyy-MM-dd HH:mm:ss.SSS''").format(cal.getTime());
+    }
+
+    protected boolean isOriginatingUserAnAdminAndRenditionOriginatorANonAdmin(DocumentModel renditionDoc) {
+        UserManager userManager = Framework.getService(UserManager.class);
+        String originatingUsername = getOriginatingUsername();
+        NuxeoPrincipal originatingPrincipal = userManager.getPrincipal(originatingUsername);
+        if (originatingPrincipal.isAdministrator()) {
+            ACL acl = renditionDoc.getACP().getACL(ACL.LOCAL_ACL);
+            for (ACE ace : acl.getACEs()) {
+                NuxeoPrincipal renditionOriginatorPrincipal = userManager.getPrincipal(ace.getUsername());
+                if (renditionOriginatorPrincipal == null || !renditionOriginatorPrincipal.isAdministrator()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }
