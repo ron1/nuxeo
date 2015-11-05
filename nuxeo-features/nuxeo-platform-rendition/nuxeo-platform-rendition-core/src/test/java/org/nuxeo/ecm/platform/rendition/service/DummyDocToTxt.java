@@ -49,6 +49,7 @@ public class DummyDocToTxt {
                 nextTransaction();
             } else {
 
+                session.save();
                 doc = session.getDocument(docRef);
                 desc = (String) doc.getPropertyValue("dc:description");
                 if (StringUtils.isNotBlank(desc)) {
