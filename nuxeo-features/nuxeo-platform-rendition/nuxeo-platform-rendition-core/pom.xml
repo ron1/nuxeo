@@ -20,6 +20,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-api</artifactId>
+      <version>7.2-CKSCRA1</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
