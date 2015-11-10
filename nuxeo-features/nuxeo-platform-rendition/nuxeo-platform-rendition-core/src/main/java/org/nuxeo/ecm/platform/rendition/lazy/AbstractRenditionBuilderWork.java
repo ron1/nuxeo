@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.ClientException;
+import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentRef;
@@ -53,6 +54,8 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
 
     protected final String renditionName;
 
+    protected final String originatingUsername;
+
     protected static Log log = LogFactory.getLog(AbstractRenditionBuilderWork.class);
 
     public AbstractRenditionBuilderWork(String key, DocumentModel doc, RenditionDefinition def) {
@@ -60,6 +63,7 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
         docRef = doc.getRef();
         repositoryName = doc.getRepositoryName();
         renditionName = def.getName();
+        originatingUsername = doc.getCoreSession().getPrincipal().getName();
     }
 
     @Override
@@ -72,13 +76,18 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
         return "Lazy Rendition for " + renditionName + " on " + docRef.toString();
     }
 
+    @Override
+    public String getUserId() {
+        return originatingUsername;
+    }
+
     protected String getTransientStoreName() {
         return AbstractLazyCachableRenditionProvider.CACHE_NAME;
     }
 
     @Override
     public void work() {
-        initSession();
+        session = CoreInstance.openCoreSession(repositoryName, originatingUsername);
         DocumentModel doc = session.getDocument(docRef);
 
         RenditionService rs = Framework.getService(RenditionService.class);
