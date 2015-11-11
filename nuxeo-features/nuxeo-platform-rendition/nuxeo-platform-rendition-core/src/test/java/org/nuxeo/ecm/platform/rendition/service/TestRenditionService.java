@@ -27,7 +27,7 @@ import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentRef;
 import org.nuxeo.ecm.core.api.IdRef;
-import org.nuxeo.ecm.core.api.NuxeoException;
+import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.PathRef;
 import org.nuxeo.ecm.core.api.VersioningOption;
 import org.nuxeo.ecm.core.api.blobholder.BlobHolder;
@@ -40,14 +40,11 @@ import org.nuxeo.ecm.core.api.security.impl.ACPImpl;
 import org.nuxeo.ecm.core.event.EventService;
 import org.nuxeo.ecm.core.storage.sql.DatabaseHelper;
 import org.nuxeo.ecm.core.test.CoreFeature;
-import org.nuxeo.ecm.core.test.DefaultRepositoryInit;
-import org.nuxeo.ecm.core.test.annotations.Granularity;
-import org.nuxeo.ecm.core.test.annotations.RepositoryConfig;
 import org.nuxeo.ecm.core.versioning.VersioningService;
 import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.RenditionException;
+import org.nuxeo.ecm.platform.usermanager.UserManager;
 import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
 import org.nuxeo.runtime.test.runner.LocalDeploy;
@@ -73,7 +70,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.nuxeo.ecm.platform.rendition.Constants.FILES_FILES_PROPERTY;
 import static org.nuxeo.ecm.platform.rendition.Constants.RENDITION_FACET;
 import static org.nuxeo.ecm.platform.rendition.Constants.RENDITION_SOURCE_ID_PROPERTY;
@@ -333,7 +329,9 @@ public class TestRenditionService {
         assertEquals(renditionBlob.getLength(), renditionDocument.getPropertyValue("common:size"));
 
         // now get a different rendition as a different user
-        try (CoreSession userSession = CoreInstance.openCoreSession(coreFeature.getRepository().getName(), "toto")) {
+        NuxeoPrincipal totoPrincipal = Framework.getService(UserManager.class).getPrincipal("toto");
+        try (CoreSession userSession = CoreInstance.openCoreSession(
+                coreFeature.getRepository().getName(), totoPrincipal)) {
             folder = userSession.getDocument(folder.getRef());
             Rendition totoRendition = getRendition(folder, renditionName, true, isLazy);
             assertTrue(totoRendition.isStored());
@@ -420,7 +418,7 @@ public class TestRenditionService {
         ACL existingACL = acp.getOrCreateACL();
         existingACL.clear();
         existingACL.add(new ACE("Administrator", SecurityConstants.EVERYTHING, true));
-        existingACL.add(new ACE("toto", SecurityConstants.READ, true));
+        existingACL.add(new ACE("group_1", SecurityConstants.READ, true));
         acp.addACL(existingACL);
         session.setACP(root.getRef(), acp, true);
 
@@ -463,7 +461,9 @@ public class TestRenditionService {
         Rendition totoRendition;
 
         // get rendition as non-admin user 'toto'
-        try (CoreSession userSession = CoreInstance.openCoreSession(coreFeature.getRepository().getName(), "toto")) {
+        NuxeoPrincipal totoPrincipal = Framework.getService(UserManager.class).getPrincipal("toto");
+        try (CoreSession userSession = CoreInstance.openCoreSession(
+                coreFeature.getRepository().getName(), totoPrincipal)) {
             folder = userSession.getDocument(folder.getRef());
             totoRendition = renditionService.getRendition(folder, renditionName, true);
             assertTrue(totoRendition.isStored());
