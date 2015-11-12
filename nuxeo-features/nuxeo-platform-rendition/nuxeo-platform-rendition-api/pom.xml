@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.nuxeo.ecm.platform</groupId>
   <artifactId>nuxeo-platform-rendition-api</artifactId>
-  <version>7.2-CKSRND3</version>
+  <version>7.2-CKSRND4-SNAPSHOT</version>
   <name>Nuxeo Platform Rendition API</name>
   <description>Nuxeo Platform Rendition API</description>
 
