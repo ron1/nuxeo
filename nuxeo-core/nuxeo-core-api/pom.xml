@@ -9,6 +9,7 @@
 
   <artifactId>nuxeo-core-api</artifactId>
   <name>Nuxeo Core API</name>
+  <version>7.2-NXPCRA1-SNAPSHOT</version>
   <description>Nuxeo Core: API.</description>
 
   <dependencies>

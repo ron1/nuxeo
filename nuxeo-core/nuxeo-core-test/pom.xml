@@ -8,6 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
+  <version>7.2-NXPCRA1-SNAPSHOT</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
 
