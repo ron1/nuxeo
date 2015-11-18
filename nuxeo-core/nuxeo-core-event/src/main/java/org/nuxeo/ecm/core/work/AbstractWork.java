@@ -475,8 +475,7 @@ public abstract class AbstractWork implements Work {
 
     @Override
     public String getOriginatingUsername() {
-        // TODO
-        return null;
+        return originatingUsername;
     }
 
     @Override
