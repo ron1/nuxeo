@@ -8,11 +8,22 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
+  <version>7.2-NXPCRE1-SNAPSHOT</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
 
   <dependencies>
 
+    <dependency>
+      <groupId>org.nuxeo.ecm.core</groupId>
+      <artifactId>nuxeo-core-api</artifactId>
+      <version>7.2-NXPCRA1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.nuxeo.ecm.core</groupId>
+      <artifactId>nuxeo-core-event</artifactId>
+      <version>7.2-NXPCRE1</version>
+    </dependency>
     <dependency>
       <groupId>org.nuxeo.common</groupId>
       <artifactId>nuxeo-common</artifactId>
@@ -59,15 +70,7 @@
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
-      <artifactId>nuxeo-core-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.nuxeo.ecm.core</groupId>
-      <artifactId>nuxeo-core-event</artifactId>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
