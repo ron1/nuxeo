@@ -6,14 +6,14 @@
     <version>7.2</version>
   </parent>
   <artifactId>nuxeo-core-event</artifactId>
-  <version>7.2-NXPCRA1-SNAPSHOT</version>
+  <version>7.2-NXPCRA1</version>
   <name>Nuxeo Core Event</name>
   <description>Core Events model and implementation</description>
   <dependencies>
    <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-api</artifactId>
-      <version>7.2-NXPCRA1-SNAPSHOT</version>
+      <version>7.2-NXPCRA1</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
