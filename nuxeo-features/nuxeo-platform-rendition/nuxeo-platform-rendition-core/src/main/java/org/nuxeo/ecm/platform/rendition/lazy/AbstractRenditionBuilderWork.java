@@ -60,6 +60,7 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
         docRef = doc.getRef();
         repositoryName = doc.getRepositoryName();
         renditionName = def.getName();
+        setOriginatingUsername(doc.getCoreSession().getPrincipal().getName());
     }
 
     @Override
@@ -78,7 +79,7 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
 
     @Override
     public void work() {
-        initSession();
+        openUserSession();
         DocumentModel doc = session.getDocument(docRef);
 
         RenditionService rs = Framework.getService(RenditionService.class);

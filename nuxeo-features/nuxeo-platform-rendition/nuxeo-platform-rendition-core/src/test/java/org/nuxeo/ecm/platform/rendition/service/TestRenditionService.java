@@ -78,13 +78,7 @@ import org.nuxeo.runtime.transaction.TransactionHelper;
  * @author <a href="mailto:troger@nuxeo.com">Thomas Roger</a>
  */
 @RunWith(FeaturesRunner.class)
-@Features(CoreFeature.class)
-@RepositoryConfig(init = DefaultRepositoryInit.class, cleanup = Granularity.METHOD)
-@Deploy({ "org.nuxeo.ecm.core.convert.api", "org.nuxeo.ecm.core.convert", "org.nuxeo.ecm.core.convert.plugins",
-        "org.nuxeo.ecm.platform.convert", "org.nuxeo.ecm.actions", "org.nuxeo.ecm.platform.rendition.api",
-        "org.nuxeo.ecm.platform.rendition.core", "org.nuxeo.ecm.automation.core",
-        "org.nuxeo.ecm.platform.commandline.executor", "org.nuxeo.ecm.platform.mimetype.core",
-        "org.nuxeo.ecm.platform.io.core", "org.nuxeo.ecm.platform.dublincore", "org.nuxeo.ecm.core.cache" })
+@Features(RenditionFeature.class)
 @LocalDeploy({
         "org.nuxeo.ecm.platform.rendition.core:test-rendition-contrib.xml",
         "org.nuxeo.ecm.platform.rendition.core:test-lazy-rendition-contrib.xml" })

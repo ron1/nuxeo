@@ -34,6 +34,7 @@ import org.nuxeo.ecm.core.event.EventService;
 import org.nuxeo.ecm.core.test.CoreFeature;
 import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.extension.AutomationRenderer;
+import org.nuxeo.ecm.platform.rendition.service.RenditionFeature;
 import org.nuxeo.ecm.platform.rendition.service.RenditionService;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.test.runner.Deploy;
@@ -44,12 +45,10 @@ import org.nuxeo.runtime.test.runner.LocalDeploy;
 import com.google.inject.Inject;
 import org.nuxeo.runtime.transaction.TransactionHelper;
 
-import javax.ws.rs.HEAD;
-
 @Deploy({ "org.nuxeo.ecm.core.cache", "org.nuxeo.ecm.platform.rendition.api", "org.nuxeo.ecm.platform.rendition.core",
         "org.nuxeo.ecm.automation.core", "org.nuxeo.ecm.platform.mimetype.core" })
 @RunWith(FeaturesRunner.class)
-@Features(CoreFeature.class)
+@Features({ RenditionFeature.class })
 @LocalDeploy("org.nuxeo.ecm.platform.rendition.core:test-lazy-automation-rendition-contrib.xml")
 /**
  *
