@@ -6,7 +6,7 @@
     <version>7.2</version>
   </parent>
   <artifactId>nuxeo-platform-rendition-parent</artifactId>
-  <version>7.2-NXPRND5-SNAPSHOT</version>
+  <version>7.2-NXPRND5</version>
   <name>Nuxeo Platform Rendition Parent</name>
   <description>Nuxeo Platform Rendition Parent</description>
   <packaging>pom</packaging>
@@ -21,7 +21,7 @@
   <properties>
     <nuxeo.core.api.version>7.2-NXPCRA1</nuxeo.core.api.version>
     <nuxeo.core.event.version>7.2-NXPCRE1</nuxeo.core.event.version>
-    <nuxeo.platform.rendition.version>7.2-NXPRND5-SNAPSHOT</nuxeo.platform.rendition.version>
+    <nuxeo.platform.rendition.version>7.2-NXPRND5</nuxeo.platform.rendition.version>
   </properties>
 
 
@@ -44,17 +44,7 @@
       </dependency>
       <dependency>
         <groupId>org.nuxeo.ecm.platform</groupId>
-        <artifactId>nuxeo-platform-rendition-web</artifactId>
-        <version>${nuxeo.platform.rendition.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.nuxeo.ecm.platform</groupId>
         <artifactId>nuxeo-platform-rendition-core</artifactId>
-        <version>${nuxeo.platform.rendition.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.nuxeo.ecm.platform</groupId>
-        <artifactId>nuxeo-platform-rendition-publisher</artifactId>
         <version>${nuxeo.platform.rendition.version}</version>
       </dependency>
     </dependencies>
