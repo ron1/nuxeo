@@ -6,6 +6,7 @@
     <version>7.2</version>
   </parent>
   <artifactId>nuxeo-platform-rendition-parent</artifactId>
+  <version>7.2-NXPRND5-SNAPSHOT</version>
   <name>Nuxeo Platform Rendition Parent</name>
   <description>Nuxeo Platform Rendition Parent</description>
   <packaging>pom</packaging>
@@ -16,5 +17,47 @@
     <module>nuxeo-platform-rendition-publisher</module>
     <module>nuxeo-platform-rendition-web</module>
   </modules>
+
+  <properties>
+    <nuxeo.core.api.version>7.2-NXPCRA1</nuxeo.core.api.version>
+    <nuxeo.core.event.version>7.2-NXPCRE1</nuxeo.core.event.version>
+    <nuxeo.platform.rendition.version>7.2-NXPRND5-SNAPSHOT</nuxeo.platform.rendition.version>
+  </properties>
+
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.nuxeo.ecm.core</groupId>
+        <artifactId>nuxeo-core-api</artifactId>
+        <version>${nuxeo.core.api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm.core</groupId>
+        <artifactId>nuxeo-core-event</artifactId>
+        <version>${nuxeo.core.event.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm.platform</groupId>
+        <artifactId>nuxeo-platform-rendition-api</artifactId>
+        <version>${nuxeo.platform.rendition.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm.platform</groupId>
+        <artifactId>nuxeo-platform-rendition-web</artifactId>
+        <version>${nuxeo.platform.rendition.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm.platform</groupId>
+        <artifactId>nuxeo-platform-rendition-core</artifactId>
+        <version>${nuxeo.platform.rendition.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm.platform</groupId>
+        <artifactId>nuxeo-platform-rendition-publisher</artifactId>
+        <version>${nuxeo.platform.rendition.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
 </project>
