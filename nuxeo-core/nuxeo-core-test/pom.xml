@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
-  <version>7.2-NXPCRE1-SNAPSHOT</version>
+  <version>7.2-NXPCRE1</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
 
@@ -22,7 +22,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-event</artifactId>
-      <version>7.2-NXPCRE1-SNAPSHOT</version>
+      <version>7.2-NXPCRE1</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.common</groupId>
