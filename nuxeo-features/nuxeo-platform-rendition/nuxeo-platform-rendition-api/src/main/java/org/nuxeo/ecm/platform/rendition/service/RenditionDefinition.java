@@ -261,6 +261,19 @@ public class RenditionDefinition {
         this.storeByDefault = Boolean.valueOf(storeByDefault);
     }
 
+    /**
+     * @since 8.1
+     */
+    @XNode("variantPolicy")
+    protected String variantPolicy;
+
+    /**
+     * @since 8.1
+     */
+    public String getVariantPolicy() {
+        return variantPolicy;
+    }
+
     /** Empty constructor. */
     public RenditionDefinition() {
     }
@@ -285,6 +298,7 @@ public class RenditionDefinition {
         filterIds = other.filterIds == null ? null : new ArrayList<>(other.filterIds);
         sourceDocumentModificationDatePropertyName = other.sourceDocumentModificationDatePropertyName;
         storeByDefault = other.storeByDefault;
+        variantPolicy = other.variantPolicy;
     }
 
     /** @since 7.10 */
@@ -327,6 +341,9 @@ public class RenditionDefinition {
         }
         if (other.storeByDefault != null) {
             storeByDefault = other.storeByDefault;
+        }
+        if (other.variantPolicy != null) {
+            variantPolicy = other.variantPolicy;
         }
     }
 

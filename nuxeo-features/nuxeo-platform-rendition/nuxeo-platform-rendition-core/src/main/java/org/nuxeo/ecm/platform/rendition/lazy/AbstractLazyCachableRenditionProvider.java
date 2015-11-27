@@ -38,6 +38,7 @@ import org.nuxeo.ecm.core.work.api.Work;
 import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.RenditionException;
+import org.nuxeo.ecm.platform.rendition.extension.AutomationRenderer;
 import org.nuxeo.ecm.platform.rendition.extension.RenditionProvider;
 import org.nuxeo.ecm.platform.rendition.impl.LazyRendition;
 import org.nuxeo.ecm.platform.rendition.service.RenditionDefinition;
@@ -63,7 +64,9 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
      * Define if rendition caching key should include the user login
      *
      * @return
+     * @deprecated since 7.10-HF01
      */
+    @Deprecated
     protected abstract boolean perUserRendition();
 
     @Override
@@ -119,6 +122,11 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
         return blobs;
     }
 
+    @Override
+    public String getVariant(DocumentModel doc, RenditionDefinition definition) {
+        return AutomationRenderer.getVariant(doc, definition);
+    }
+
     protected String buildRenditionKey(DocumentModel doc, RenditionDefinition def) {
 
         StringBuffer sb = new StringBuffer(doc.getId());
@@ -129,8 +137,9 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
             sb.append(modif.getTimeInMillis());
             sb.append("::");
         }
-        if (perUserRendition()) {
-            sb.append(doc.getCoreSession().getPrincipal().getName());
+        String variant = getVariant(doc, def);
+        if (variant != null) {
+            sb.append(variant);
             sb.append("::");
         }
         sb.append(def.getName());

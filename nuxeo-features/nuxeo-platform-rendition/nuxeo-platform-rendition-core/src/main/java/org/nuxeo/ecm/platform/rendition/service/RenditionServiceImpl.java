@@ -17,7 +17,9 @@
 package org.nuxeo.ecm.platform.rendition.service;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +60,11 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
 
     public static final String RENDITON_DEFINION_PROVIDERS_EP = "renditionDefinitionProviders";
 
+    /**
+     * @since 8.1
+     */
+    public static final String STORED_RENDITION_MANAGERS_EP = "storedRenditionManagers";
+
     private static final Log log = LogFactory.getLog(RenditionServiceImpl.class);
 
     /**
@@ -69,6 +76,21 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
     protected Map<String, RenditionDefinition> renditionDefinitions;
 
     protected RenditionDefinitionProviderRegistry renditionDefinitionProviderRegistry;
+
+    protected static final StoredRenditionManager DEFAULT_STORED_RENDITION_MANAGER = new DefaultStoredRenditionManager();
+
+    /**
+     * @since 8.1
+     */
+    protected Deque<StoredRenditionManagerDescriptor> storedRenditionManagerDescriptors = new LinkedList<>();
+
+    /**
+     * @since 8.1
+     */
+    public StoredRenditionManager getStoredRenditionManager() {
+        StoredRenditionManagerDescriptor descr = storedRenditionManagerDescriptors.peekLast();
+        return descr == null ? DEFAULT_STORED_RENDITION_MANAGER : descr.getStoredRenditionManager();
+    }
 
     @Override
     public void activate(ComponentContext context) {
@@ -140,7 +162,19 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
         return rendition == null ? null : rendition.getHostDocument().getRef();
     }
 
+    /**
+     * @deprecated since 8.1
+     */
+    @Deprecated
     protected DocumentModel storeRendition(DocumentModel sourceDocument, Rendition rendition, String name) {
+        StoredRendition storedRendition = storeRendition(sourceDocument, rendition);
+        return storedRendition == null ? null : storedRendition.getHostDocument();
+    }
+
+    /**
+     * @since 8.1
+     */
+    protected StoredRendition storeRendition(DocumentModel sourceDocument, Rendition rendition) {
         if (!rendition.isCompleted()) {
             return null;
         }
@@ -153,13 +187,11 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
             DocumentRef versionRef = createVersionIfNeeded(sourceDocument, session);
             version = session.getDocument(versionRef);
         }
-        RenditionCreator rc = new RenditionCreator(session, sourceDocument, version, renderedBlob, name);
-        rc.runUnrestricted();
 
-        DocumentModel detachedRendition = rc.getDetachedRendition();
-
-        detachedRendition.attach(sourceDocument.getSessionId());
-        return detachedRendition;
+        RenditionDefinition renditionDefinition = getRenditionDefinition(rendition.getName());
+        StoredRendition storedRendition = getStoredRenditionManager().createStoredRendition(sourceDocument, version,
+                renderedBlob, renditionDefinition);
+        return storedRendition;
     }
 
     protected DocumentRef createVersionIfNeeded(DocumentModel source, CoreSession session) {
@@ -191,6 +223,8 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
             registerRendition((RenditionDefinition) contribution);
         } else if (RENDITON_DEFINION_PROVIDERS_EP.equals(extensionPoint)) {
             renditionDefinitionProviderRegistry.addContribution((RenditionDefinitionProviderDescriptor) contribution);
+        } else if (STORED_RENDITION_MANAGERS_EP.equals(extensionPoint)) {
+            storedRenditionManagerDescriptors.add(((StoredRenditionManagerDescriptor) contribution));
         }
     }
 
@@ -251,6 +285,10 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
     public void unregisterContribution(Object contribution, String extensionPoint, ComponentInstance contributor) {
         if (RENDITION_DEFINITIONS_EP.equals(extensionPoint)) {
             unregisterRendition((RenditionDefinition) contribution);
+        } else if (RENDITON_DEFINION_PROVIDERS_EP.equals(extensionPoint)) {
+            renditionDefinitionProviderRegistry.removeContribution((RenditionDefinitionProviderDescriptor) contribution);
+        } else if (STORED_RENDITION_MANAGERS_EP.equals(extensionPoint)) {
+            storedRenditionManagerDescriptors.remove(((StoredRenditionManagerDescriptor) contribution));
         }
     }
 
@@ -274,41 +312,26 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
 
     protected Rendition getRendition(DocumentModel doc, RenditionDefinition renditionDefinition, boolean store) {
 
-        DocumentModel stored = null;
+        Rendition rendition = null;
         boolean isVersionable = doc.isVersionable();
         if (!isVersionable || !doc.isCheckedOut()) {
             // stored renditions are only done against a non-versionable doc
             // or a versionable doc that is not checkedout
-            RenditionFinder finder = new RenditionFinder(doc, renditionDefinition.getName());
-            if (isVersionable) {
-                finder.runUnrestricted();
-            } else {
-                finder.run();
-            }
-            // retrieve the Detached stored rendition doc
-            stored = finder.getStoredRendition();
-            // re-attach the detached doc
-            if (stored != null) {
-                stored.attach(doc.getCoreSession().getSessionId());
-            }
-        }
-
-        if (stored != null) {
-            return new StoredRendition(stored, renditionDefinition);
-        }
-
-        LiveRendition rendition = new LiveRendition(doc, renditionDefinition);
-
-        if (store) {
-            DocumentModel storedRenditionDoc = storeRendition(doc, rendition, renditionDefinition.getName());
-            if (storedRenditionDoc != null) {
-                return new StoredRendition(storedRenditionDoc, renditionDefinition);
-            } else {
+            rendition = getStoredRenditionManager().findStoredRendition(doc, renditionDefinition);
+            if (rendition != null) {
                 return rendition;
             }
-        } else {
-            return rendition;
         }
+
+        rendition = new LiveRendition(doc, renditionDefinition);
+
+        if (store) {
+            StoredRendition storedRendition = storeRendition(doc, rendition);
+            if (storedRendition != null) {
+                return storedRendition;
+            }
+        }
+        return rendition;
     }
 
     protected RenditionDefinition getAvailableRenditionDefinition(DocumentModel doc, String renditionName) {
