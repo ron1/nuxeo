@@ -342,8 +342,12 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
                 String message = "The rendition definition '%s' is not registered";
                 throw new RenditionException(String.format(message, renditionName), "label.rendition.not.defined");
             }
+        } else {
+            // we have a rendition definition but we must check that it can be used for this doc
+            if (!canUseRenditionDefinition(renditionDefinition, doc)) {
+                throw new RenditionException("Rendition " + renditionName + " cannot be used for this doc " + doc.getId());
+            }
         }
-
         if (!renditionDefinition.getProvider().isAvailable(doc, renditionDefinition)) {
             throw new RenditionException("Rendition " + renditionName + " not available for this doc " + doc.getId());
         }

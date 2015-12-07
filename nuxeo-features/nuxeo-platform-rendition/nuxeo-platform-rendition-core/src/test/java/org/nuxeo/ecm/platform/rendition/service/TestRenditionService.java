@@ -829,25 +829,45 @@ public class TestRenditionService {
     public void shouldFilterRenditionDefinitions() throws Exception {
         runtimeHarness.deployContrib(RENDITION_CORE, RENDITION_FILTERS_COMPONENT_LOCATION);
 
+        List<RenditionDefinition> availableRenditionDefinitions;
+        Rendition rendition;
+
+        // ----- Note
+
         DocumentModel doc = session.createDocumentModel("/", "note", "Note");
         doc = session.createDocument(doc);
-        List<RenditionDefinition> availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(10, availableRenditionDefinitions.size());
+        availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
+        assertRenditionDefinitions(availableRenditionDefinitions, "renditionOnlyForNote");
+
+        rendition = renditionService.getRendition(doc, "renditionOnlyForNote", false);
+        assertNotNull(rendition);
+        // others are filtered out
+        try {
+            rendition = renditionService.getRendition(doc, "renditionOnlyForFile", false);
+            fail();
+        } catch (NuxeoException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("Rendition renditionOnlyForFile cannot be used"));
+        }
+
+        // ----- File
 
         doc = session.createDocumentModel("/", "file", "File");
         doc = session.createDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(10, availableRenditionDefinitions.size());
+        assertRenditionDefinitions(availableRenditionDefinitions, "renditionOnlyForFile");
 
         doc.setPropertyValue("dc:rights", "Unauthorized");
         session.saveDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(9, availableRenditionDefinitions.size());
+        // renditionOnlyForFile filtered out, unauthorized
+        assertRenditionDefinitions(availableRenditionDefinitions);
+
+        // ----- Folder
 
         doc = session.createDocumentModel("/", "folder", "Folder");
         doc = session.createDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(10, availableRenditionDefinitions.size());
+        assertRenditionDefinitions(availableRenditionDefinitions, "renditionOnlyForFolder");
 
         runtimeHarness.undeployContrib(RENDITION_CORE, RENDITION_FILTERS_COMPONENT_LOCATION);
     }
@@ -858,23 +878,24 @@ public class TestRenditionService {
 
         DocumentModel doc = session.createDocumentModel("/", "note", "Note");
         doc = session.createDocument(doc);
-        List<RenditionDefinition> availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(11, availableRenditionDefinitions.size());
+        List<RenditionDefinition> availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(
+                doc);
+        assertRenditionDefinitions(availableRenditionDefinitions, "dummyRendition1", "dummyRendition2");
 
         doc = session.createDocumentModel("/", "file", "File");
         doc = session.createDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(11, availableRenditionDefinitions.size());
+        assertRenditionDefinitions(availableRenditionDefinitions, "dummyRendition1", "dummyRendition2");
 
         doc.setPropertyValue("dc:rights", "Unauthorized");
         session.saveDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(9, availableRenditionDefinitions.size());
+        assertRenditionDefinitions(availableRenditionDefinitions);
 
         doc = session.createDocumentModel("/", "folder", "Folder");
         doc = session.createDocument(doc);
         availableRenditionDefinitions = renditionService.getAvailableRenditionDefinitions(doc);
-        assertEquals(11, availableRenditionDefinitions.size());
+        assertRenditionDefinitions(availableRenditionDefinitions, "dummyRendition1", "dummyRendition2");
 
         runtimeHarness.undeployContrib(RENDITION_CORE, RENDITION_DEFINITION_PROVIDERS_COMPONENT_LOCATION);
     }
