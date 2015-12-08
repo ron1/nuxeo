@@ -34,7 +34,9 @@ import org.nuxeo.ecm.core.transientstore.StorageEntryImpl;
 import org.nuxeo.ecm.core.transientstore.api.StorageEntry;
 import org.nuxeo.ecm.core.transientstore.api.TransientStore;
 import org.nuxeo.ecm.core.transientstore.api.TransientStoreService;
+import org.nuxeo.ecm.core.work.AbstractWork;
 import org.nuxeo.ecm.core.work.api.Work;
+import org.nuxeo.ecm.core.work.api.Work.State;
 import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.RenditionException;
@@ -111,6 +113,31 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
                     throw new RenditionException("Unable to release entry in TransientStore", e);
                 }
                 return entry.getBlobs();
+            } else {
+                WorkManager wm = Framework.getService(WorkManager.class);
+                String workId = (String) entry.get(WORKERID_KEY);
+                Work renditionWorkId = new RenditionWorkId(workId);
+                Work work = wm.find(renditionWorkId, State.COMPLETED, true, null);
+                if (work == null) {
+                    work = wm.find(renditionWorkId, State.FAILED, true, null);
+                }
+                if (work != null) {
+                    State state = work.getWorkInstanceState();
+                    if (state == State.FAILED) {
+                        // return an empty Blob
+                        List<Blob> blobs = new ArrayList<Blob>();
+                        StringBlob emptyBlob = new StringBlob("");
+                        emptyBlob.setFilename("error");
+                        emptyBlob.setMimeType("text/plain;" + LazyRendition.ERROR_MARKER);
+                        blobs.add(emptyBlob);
+                        try {
+                            ts.canDelete(key);
+                        } catch (IOException e) {
+                            throw new RenditionException("Unable to release entry in TransientStore", e);
+                        }
+                        return blobs;
+                    }
+                }
             }
         }
         // return an empty Blob
@@ -179,5 +206,22 @@ public abstract class AbstractLazyCachableRenditionProvider implements Rendition
      * @return
      */
     protected abstract Work getRenditionWork(final String key, final DocumentModel doc, final RenditionDefinition def);
+
+    /**
+     * Used only to find a Work and subsequently its WorkInstanceState
+     */
+    class RenditionWorkId extends AbstractWork {
+        public RenditionWorkId(String id) {
+            super(id);
+        }
+
+        @Override public void work() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override public String getTitle() {
+            return null;
+        }
+    }
 
 }
