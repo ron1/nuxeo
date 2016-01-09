@@ -6,7 +6,7 @@
     <version>7.2</version>
   </parent>
   <artifactId>nuxeo-core-event</artifactId>
-  <version>7.2-CKSCRE1-SNAPSHOT</version>
+  <version>7.2-CKSCRE1</version>
   <name>Nuxeo Core Event</name>
   <description>Core Events model and implementation</description>
   <dependencies>
