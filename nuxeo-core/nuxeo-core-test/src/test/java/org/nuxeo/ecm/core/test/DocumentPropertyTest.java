@@ -18,21 +18,23 @@
  */
 package org.nuxeo.ecm.core.test;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.Serializable;
-
-import javax.inject.Inject;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.Blobs;
+import org.nuxeo.ecm.core.api.CoreInstance;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.test.annotations.RepositoryConfig;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
+import org.nuxeo.runtime.test.runner.RuntimeHarness;
+
+import javax.inject.Inject;
+import java.io.Serializable;
+import java.util.Calendar;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(FeaturesRunner.class)
 @Features(CoreFeature.class)
@@ -41,6 +43,9 @@ public class DocumentPropertyTest {
 
     @Inject
     public CoreSession session;
+
+    @Inject
+    public RuntimeHarness harness;
 
     @Test
     public void theSessionIsUsable() throws Exception {
@@ -53,6 +58,20 @@ public class DocumentPropertyTest {
         doc = session.getDocument(doc.getRef());
         assertEquals("myfile", doc.getPropertyValue("file:content/name"));
         assertEquals("mydigest", doc.getPropertyValue("file:content/digest"));
+    }
+
+    @Test
+    public void canAccessPropertyValueInSecurityPolicy() throws Exception {
+        harness.deployTestContrib("org.nuxeo.ecm.core.tests", "OSGI-INF/mandatory-expiration-security-policy-contrib.xml");
+        harness.deployTestContrib("org.nuxeo.ecm.core.tests", "OSGI-INF/check-expiration-listener-contrib.xml");
+        try (CoreSession coreSession = CoreInstance.openCoreSession(session.getRepositoryName(), "anonymous")) {
+            DocumentModel doc = coreSession.createDocumentModel("/default-domain/workspaces", "myfile", "File");
+            Calendar cal = Calendar.getInstance();
+            doc.setPropertyValue("dc:expired", cal);
+            doc = coreSession.createDocument(doc);
+            doc = coreSession.getDocument(doc.getRef());
+            assertEquals(cal, doc.getPropertyValue("dc:expired"));
+        }
     }
 
 }

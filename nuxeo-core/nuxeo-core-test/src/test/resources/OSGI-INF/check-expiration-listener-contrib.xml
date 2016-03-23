@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.ecm.core.check.expiration.listener" version="1.0.0">
+
+  <extension target="org.nuxeo.ecm.core.event.EventServiceComponent" point="listener">
+    <listener name="checkExpirationListener" async="false" postCommit="false"
+        class="org.nuxeo.ecm.core.security.CheckExpirationListener" priority="120">
+      <event>documentCreated</event>
+    </listener>
+  </extension>
+
+</component>
