@@ -8,6 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-platform-ui-web</artifactId>
+  <version>8.2-CKSUIW1-SNAPSHOT</version>
   <name>Nuxeo Web Framework</name>
   <description>
     Nuxeo Enterprise Platform: Web Framework, based on JBoss SEAM, to build web
