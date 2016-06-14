@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-platform-webapp-base</artifactId>
-  <version>8.2-NXP1-SNAPSHOT</version>
+  <version>8.2-NXP1</version>
   <name>Nuxeo Webapp Base</name>
   <description>Base Seam components for skeleton of JSF WebApp based on Nuxeo EP</description>
 
