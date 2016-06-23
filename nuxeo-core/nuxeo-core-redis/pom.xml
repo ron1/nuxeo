@@ -9,7 +9,12 @@
   </parent>
 
   <artifactId>nuxeo-core-redis</artifactId>
+  <version>8.2-NXPCRC1-SNAPSHOT</version>
   <name>Nuxeo Core Redis</name>
+
+  <properties>
+    <nuxeo.core.cache.version>8.2-NXPCRC1-SNAPSHOT</nuxeo.core.cache.version>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -43,6 +48,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-cache</artifactId>
+      <version>${nuxeo.core.cache.version}</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
