@@ -9,11 +9,11 @@
   </parent>
 
   <artifactId>nuxeo-core-redis</artifactId>
-  <version>8.2-NXPCRC1-SNAPSHOT</version>
+  <version>8.2-NXPCRC1</version>
   <name>Nuxeo Core Redis</name>
 
   <properties>
-    <nuxeo.core.cache.version>8.2-NXPCRC1-SNAPSHOT</nuxeo.core.cache.version>
+    <nuxeo.core.cache.version>8.2-NXPCRC1</nuxeo.core.cache.version>
   </properties>
 
   <dependencies>
