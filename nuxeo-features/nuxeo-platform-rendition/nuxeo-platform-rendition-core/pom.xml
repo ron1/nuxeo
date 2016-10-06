@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.nuxeo.ecm.platform</groupId>
   <artifactId>nuxeo-platform-rendition-core</artifactId>
-  <version>8.2-CKSRNDC1-SNAPSHOT</version>
+  <version>8.2-CKSRNDC1</version>
   <name>Nuxeo Platform Rendition Core</name>
   <description>Nuxeo Platform Rendition Core</description>
 
