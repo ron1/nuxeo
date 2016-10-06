@@ -53,6 +53,8 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
 
     protected final String renditionName;
 
+    protected static final String CATEGORY = "renditionBuilder";
+
     protected static Log log = LogFactory.getLog(AbstractRenditionBuilderWork.class);
 
     public AbstractRenditionBuilderWork(String key, DocumentModel doc, RenditionDefinition def) {
@@ -71,6 +73,11 @@ public abstract class AbstractRenditionBuilderWork extends AbstractWork implemen
     @Override
     public String getTitle() {
         return "Lazy Rendition for " + renditionName + " on " + docRef.toString();
+    }
+
+    @Override
+    public String getCategory() {
+        return CATEGORY;
     }
 
     protected String getTransientStoreName() {
