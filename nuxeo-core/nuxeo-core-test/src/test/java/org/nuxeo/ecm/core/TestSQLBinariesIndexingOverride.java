@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -36,10 +37,14 @@ import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentModelList;
 import org.nuxeo.ecm.core.api.blobholder.BlobHolder;
 import org.nuxeo.ecm.core.event.EventService;
+import org.nuxeo.ecm.core.query.sql.NXQL;
+import org.nuxeo.ecm.core.storage.sql.RepositoryDescriptor;
+import org.nuxeo.ecm.core.storage.sql.coremodel.SQLRepositoryService;
 import org.nuxeo.ecm.core.test.CoreFeature;
 import org.nuxeo.ecm.core.test.StorageConfiguration;
 import org.nuxeo.ecm.core.test.annotations.Granularity;
 import org.nuxeo.ecm.core.test.annotations.RepositoryConfig;
+import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.reload.ReloadService;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
@@ -163,6 +168,74 @@ public class TestSQLBinariesIndexingOverride {
             assertTrue(map.containsKey("binarytext_binaries"));
             assertEquals("test", map.get("binarytext"));
             assertEquals("test", map.get("binarytext_binaries"));
+        }
+    }
+
+/*
+    @Test
+    public void testExcludeFieldBlob() throws Exception {
+        DocumentModelList res;
+        DocumentModel doc = session.createDocumentModel("/", "source", "File");
+        doc.setPropertyValue("file:content", (Serializable) Blobs.createBlob("test"));
+        doc = session.createDocument(doc);
+        session.save();
+
+        waitForFulltextIndexing();
+
+        // indexes the skip file:content
+
+        res = session.query("SELECT * FROM Document WHERE ecm:fulltext_nofile1 = 'test'");
+        assertEquals(0, res.size());
+        res = session.query("SELECT * FROM Document WHERE ecm:fulltext_nofile2 = 'test'");
+        assertEquals(0, res.size());
+        res = session.query("SELECT * FROM Document WHERE ecm:fulltext_nofile3 = 'test'");
+        assertEquals(0, res.size());
+        res = session.query("SELECT * FROM Document WHERE ecm:fulltext_nofile4 = 'test'");
+        assertEquals(0, res.size());
+    }
+*/
+
+    @Test
+    public void testEnforceFulltextFieldSizeLimit() throws Exception {
+        SQLRepositoryService repositoryService = Framework.getService(SQLRepositoryService.class);
+        RepositoryDescriptor repositoryDescriptor = repositoryService.getRepositoryImpl(
+                session.getRepositoryName()).getRepositoryDescriptor();
+        int fulltextFieldSizeLimit = repositoryDescriptor.getFulltextDescriptor().getFulltextFieldSizeLimit();
+        assertEquals(1024, fulltextFieldSizeLimit);
+
+        String query = "SELECT * FROM Document WHERE ecm:fulltext = %s";
+        DocumentModelList res;
+        for (int i = 0; i < 2; i++) {
+            boolean regular = i == 0;
+            String name = regular ? "regContent" : "bigContent";
+            String content = "";
+            for (int j = 0; j < 93; j++) {
+                content += "regContent" + " ";
+            }
+            if (!regular) {
+                for (int j = 0; j < 50; j++) {
+                    content += "bigContent" + " ";
+                }
+            }
+            assertEquals(11 * (regular ? 93 : 143), content.length());
+
+            DocumentModel doc = session.createDocumentModel("/", name, "File");
+            doc.setPropertyValue("file:content", (Serializable) Blobs.createBlob(content));
+            doc = session.createDocument(doc);
+            session.save();
+
+            waitForFulltextIndexing();
+
+            // main index
+            res = session.query(String.format(query, NXQL.escapeString(content)));
+            if (regular) {
+                assertEquals(1, res.size());
+            } else {
+                assertEquals(0, res.size());
+                content = content.substring(0, fulltextFieldSizeLimit - 1);
+                res = session.query(String.format(query, NXQL.escapeString(content)));
+                assertEquals(2, res.size());
+            }
         }
     }
 

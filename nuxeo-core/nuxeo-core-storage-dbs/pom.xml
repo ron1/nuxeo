@@ -52,6 +52,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-storage</artifactId>
+      <version>8.2-NXPCSSDT1-SNAPSHOT</version>
     </dependency>
 
 
@@ -59,6 +60,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-storage-sql</artifactId>
+      <version>8.2-NXPCSSDT1-SNAPSHOT</version>
     </dependency>
 
     <dependency>
