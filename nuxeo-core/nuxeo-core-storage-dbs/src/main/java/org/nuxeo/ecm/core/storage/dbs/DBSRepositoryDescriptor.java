@@ -57,6 +57,11 @@ public class DBSRepositoryDescriptor implements Cloneable {
         return fulltextDescriptor;
     }
 
+    @XNode("fulltext@fieldSizeLimit")
+    public void setFulltextFieldSizeLimit(int fieldSizeLimit) {
+        fulltextDescriptor.setFulltextFieldSizeLimit(fieldSizeLimit);
+    }
+
     @XNode("fulltext@disabled")
     public void setFulltextDisabled(boolean disabled) {
         fulltextDescriptor.setFulltextDisabled(disabled);
