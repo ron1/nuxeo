@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>nuxeo-core-storage</artifactId>
-  <version>8.2-NXPCSSDT1-SNAPSHOT</version>
+  <version>8.2-NXPCSSDT1</version>
   <name>Nuxeo Core Storage</name>
 
   <dependencies>

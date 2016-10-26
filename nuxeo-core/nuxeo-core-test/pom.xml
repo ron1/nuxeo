@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
-  <version>8.2-NXPCSSDT1-SNAPSHOT</version>
+  <version>8.2-NXPCSSDT1</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
 
@@ -81,12 +81,12 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-storage</artifactId>
-      <version>8.2-NXPCSSDT1-SNAPSHOT</version>
+      <version>8.2-NXPCSSDT1</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-storage-sql</artifactId>
-      <version>8.2-NXPCSSDT1-SNAPSHOT</version>
+      <version>8.2-NXPCSSDT1</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
