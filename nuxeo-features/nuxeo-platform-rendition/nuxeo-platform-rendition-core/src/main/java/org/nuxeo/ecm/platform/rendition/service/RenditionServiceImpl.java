@@ -37,6 +37,7 @@ import org.nuxeo.ecm.core.api.VersioningOption;
 import org.nuxeo.ecm.platform.rendition.Rendition;
 import org.nuxeo.ecm.platform.rendition.extension.DefaultAutomationRenditionProvider;
 import org.nuxeo.ecm.platform.rendition.extension.RenditionProvider;
+import org.nuxeo.ecm.platform.rendition.impl.LazyRendition;
 import org.nuxeo.ecm.platform.rendition.impl.LiveRendition;
 import org.nuxeo.ecm.platform.rendition.impl.StoredRendition;
 import org.nuxeo.runtime.api.Framework;
@@ -170,6 +171,11 @@ public class RenditionServiceImpl extends DefaultComponent implements RenditionS
         }
         List<Blob> renderedBlobs = rendition.getBlobs();
         Blob renderedBlob = renderedBlobs.get(0);
+        String mimeType = renderedBlob.getMimeType();
+        if (mimeType != null && mimeType.contains(LazyRendition.ERROR_MARKER)) {
+            return null;
+        }
+
         CoreSession session = sourceDocument.getCoreSession();
         DocumentModel version = null;
         boolean isVersionable = sourceDocument.isVersionable();
