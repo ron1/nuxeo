@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -104,6 +105,12 @@ public class RedisWorkQueuing implements WorkQueuing {
      */
     protected static final String KEY_COMPLETED_PREFIX = "done:";
 
+    protected static final String KEY_CANCELED_PREFIX = "cancel";
+
+    protected static final byte[] KEY_CANCELED = KEY_CANCELED_PREFIX.getBytes();
+
+    protected static final String KEY_COUNT_PREFIX = "count";
+
     protected static final byte STATE_SCHEDULED_B = 'Q';
 
     protected static final byte STATE_CANCELED_B = 'X';
@@ -133,6 +140,7 @@ public class RedisWorkQueuing implements WorkQueuing {
 
     // lua scripts
     protected String schedulingWorkSha;
+    protected String popWorkSha;
     protected String runningWorkSha;
     protected String completedWorkSha;
     protected String cleanCompletedWorkSha;
@@ -156,6 +164,7 @@ public class RedisWorkQueuing implements WorkQueuing {
         }
         try {
             schedulingWorkSha = redisAdmin.load("org.nuxeo.ecm.core.redis", "scheduling-work");
+            popWorkSha = redisAdmin.load("org.nuxeo.ecm.core.redis", "pop-work");
             runningWorkSha = redisAdmin.load("org.nuxeo.ecm.core.redis", "running-work");
             completedWorkSha = redisAdmin.load("org.nuxeo.ecm.core.redis", "completed-work");
             cleanCompletedWorkSha = redisAdmin.load("org.nuxeo.ecm.core.redis", "clean-completed-work");
@@ -409,6 +418,10 @@ public class RedisWorkQueuing implements WorkQueuing {
         }
     }
 
+    protected static String key(String... names) {
+        return String.join(":", names);
+    }
+
     protected byte[] keyBytes(String prefix, String queueId) {
         return keyBytes(prefix + queueId);
     }
@@ -425,6 +438,10 @@ public class RedisWorkQueuing implements WorkQueuing {
         return keyBytes(KEY_QUEUE_PREFIX, queueId);
     }
 
+    protected byte[] countKey(String queueId) {
+        return keyBytes(key(KEY_COUNT_PREFIX, queueId));
+    }
+
     protected byte[] runningKey(String queueId) {
         return keyBytes(KEY_RUNNING_PREFIX, queueId);
     }
@@ -439,6 +456,10 @@ public class RedisWorkQueuing implements WorkQueuing {
 
     protected String completedKeyString(String queueId) {
         return redisNamespace + KEY_COMPLETED_PREFIX + queueId;
+    }
+
+    protected byte[] canceledKey(String queueId) {
+        return keyBytes(key(KEY_CANCELED_PREFIX, queueId));
     }
 
     protected byte[] stateKey() {
@@ -668,6 +689,17 @@ public class RedisWorkQueuing implements WorkQueuing {
         });
     }
 
+    protected List<byte[]> keys(String queueid) {
+        return Arrays.asList(dataKey(),
+                stateKey(),
+                countKey(queueid),
+                scheduledKey(queueid),
+                queuedKey(queueid),
+                runningKey(queueid),
+                completedKey(queueid),
+                canceledKey(queueid));
+    }
+
     /**
      * Gets the work state.
      *
@@ -802,21 +834,31 @@ public class RedisWorkQueuing implements WorkQueuing {
      * @return the work, or {@code null} if the scheduled queue is empty
      */
     protected Work getWorkFromQueue(final String queueId) throws IOException {
-        return redisExecutor.execute(new RedisCallable<Work>() {
+        RedisExecutor redisExecutor = Framework.getService(RedisExecutor.class);
+        List<byte[]> keys = keys(queueId);
+        List<byte[]> args = Collections.singletonList(STATE_RUNNING);
+        List<?> result = redisExecutor.execute(new RedisCallable<List<?>>() {
 
             @Override
-            public Work call(Jedis jedis) {
-                // pop from queue
-                byte[] workIdBytes = jedis.rpop(queuedKey(queueId));
-                if (workIdBytes == null) {
-                    return null;
-                }
-                // get data
-                byte[] workBytes = jedis.hget(dataKey(), workIdBytes);
-                return deserializeWork(workBytes);
+            public List<?> call(Jedis jedis) {
+                List<?> result = (List<?>)jedis.evalsha(popWorkSha.getBytes(), keys, args);
+                return result;
             }
 
         });
+        if (result == null) {
+            return null;
+        }
+
+        List<Number> numbers = (List<Number>)result.get(0);
+        log.debug("Pop work from queue: " + queueId + " with metric counts: " + coerceNullToZero(numbers));
+        Object bytes = result.get(1);
+        if (bytes instanceof String) {
+            bytes = bytes((String) bytes);
+        }
+        Work work = deserializeWork((byte[])bytes);
+
+        return work;
     }
 
     /**
@@ -934,6 +976,19 @@ public class RedisWorkQueuing implements WorkQueuing {
                 return null;
             }
         });
+    }
+
+    protected static Number[] coerceNullToZero(List<Number> numbers) {
+        return coerceNullToZero(numbers.toArray(new Number[numbers.size()]));
+    }
+
+    protected static Number[] coerceNullToZero(Number[] counters) {
+        for (int i = 0; i < counters.length; ++i) {
+            if (counters[i] == null) {
+                counters[i] = 0;
+            }
+        }
+        return counters;
     }
 
 }
