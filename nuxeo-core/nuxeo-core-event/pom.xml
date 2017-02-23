@@ -6,6 +6,7 @@
     <version>8.2</version>
   </parent>
   <artifactId>nuxeo-core-event</artifactId>
+  <version>8.2-CKSCET1-SNAPSHOT</version>
   <name>Nuxeo Core Event</name>
   <description>Core Events model and implementation</description>
   <dependencies>

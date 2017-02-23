@@ -8,8 +8,13 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
+  <version>8.2-CKSCET1-SNAPSHOT</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
+
+  <properties>
+    <nuxeo.core.event.version>${project.version}</nuxeo.core.event.version>
+  </properties>
 
   <dependencies>
 
@@ -68,6 +73,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-event</artifactId>
+      <version>${nuxeo.core.event.version}</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
