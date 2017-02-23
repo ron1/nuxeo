@@ -692,10 +692,7 @@ public class WorkManagerImpl extends DefaultComponent implements WorkManager {
             case IF_NOT_SCHEDULED:
             case IF_NOT_RUNNING:
             case IF_NOT_RUNNING_OR_SCHEDULED:
-                // TODO disabled for now because hasWorkInState uses isScheduled
-                // which is buggy
-                boolean disabled = Boolean.TRUE.booleanValue();
-                if (!disabled && hasWorkInState(workId, scheduling.state)) {
+                if (hasWorkInState(workId, scheduling.state)) {
                     // mark passed work as canceled
                     work.setWorkInstanceState(State.CANCELED);
                     if (log.isDebugEnabled()) {
