@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>nuxeo-core-test</artifactId>
-  <version>8.2-CKSCET1-SNAPSHOT</version>
+  <version>8.2-CKSCET1</version>
   <name>Nuxeo Core Test Framework</name>
   <description>Nuxeo Core: Testing framewok</description>
 
