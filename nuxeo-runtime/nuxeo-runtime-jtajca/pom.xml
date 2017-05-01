@@ -9,6 +9,7 @@
 
   <groupId>org.nuxeo.runtime</groupId>
   <artifactId>nuxeo-runtime-jtajca</artifactId>
+  <version>8.2-NXPCSSDRTJJT1-SNAPSHOT</version>
   <name>Nuxeo Runtime JTA/JCA Implementation</name>
   <description>Nuxeo Runtime: JTA/JCA Implementation</description>
 

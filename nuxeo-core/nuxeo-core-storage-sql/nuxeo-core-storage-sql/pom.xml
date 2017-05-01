@@ -6,6 +6,7 @@
     <version>8.2</version>
   </parent>
   <artifactId>nuxeo-core-storage-sql</artifactId>
+  <version>8.2-NXPCSSDRTJJT1-SNAPSHOT</version>
   <name>Nuxeo Core SQL Storage</name>
   <description>Nuxeo Core: SQL Storage.</description>
   <dependencies>
@@ -68,6 +69,7 @@
     <dependency>
       <groupId>org.nuxeo.ecm.core</groupId>
       <artifactId>nuxeo-core-storage</artifactId>
+      <version>8.2-NXPCSSDRTJJT1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.runtime</groupId>
@@ -80,6 +82,7 @@
     <dependency>
       <groupId>org.nuxeo.runtime</groupId>
       <artifactId>nuxeo-runtime-jtajca</artifactId>
+      <version>8.2-NXPCSSDRTJJT1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.nuxeo.runtime</groupId>
