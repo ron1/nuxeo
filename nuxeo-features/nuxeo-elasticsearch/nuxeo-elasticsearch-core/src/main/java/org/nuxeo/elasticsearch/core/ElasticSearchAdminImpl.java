@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -48,6 +49,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.ImmutableSettings.Builder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
 import org.nuxeo.elasticsearch.api.ElasticSearchAdmin;
@@ -401,7 +403,9 @@ public class ElasticSearchAdminImpl implements ElasticSearchAdmin {
                     log.warn(String.format("Initializing index: %s, type: %s with "
                             + "dropIfExists flag, deleting an existing index", conf.getName(), conf.getType()));
                 }
-                getClient().admin().indices().delete(new DeleteIndexRequest(conf.getName())).actionGet();
+                TimeValue deleteTimeout = new TimeValue(5, TimeUnit.MINUTES);
+                getClient().admin().indices().delete(new DeleteIndexRequest(conf.getName()).timeout(
+                        deleteTimeout).masterNodeTimeout(deleteTimeout)).actionGet();
                 indexExists = false;
             }
         }
