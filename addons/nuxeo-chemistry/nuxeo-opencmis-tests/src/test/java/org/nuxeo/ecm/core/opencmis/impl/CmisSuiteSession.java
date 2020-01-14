@@ -29,12 +29,16 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import static org.nuxeo.ecm.core.opencmis.tests.Helper.FILE1_CONTENT;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -86,13 +90,17 @@ import org.apache.chemistry.opencmis.commons.exceptions.CmisRuntimeException;
 import org.apache.chemistry.opencmis.commons.impl.Base64;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.AccessControlEntryImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.AccessControlPrincipalDataImpl;
+import org.apache.chemistry.opencmis.commons.impl.dataobjects.ContentStreamHashImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.ContentStreamImpl;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -111,6 +119,7 @@ import org.nuxeo.ecm.core.api.security.impl.ACPImpl;
 import org.nuxeo.ecm.core.event.EventService;
 import org.nuxeo.ecm.core.opencmis.impl.client.NuxeoSession;
 import org.nuxeo.ecm.core.opencmis.impl.server.NuxeoContentStream;
+import org.nuxeo.ecm.core.opencmis.impl.server.NuxeoPropertyData;
 import org.nuxeo.ecm.core.opencmis.tests.Helper;
 import org.nuxeo.ecm.core.opencmis.tests.StatusLoggingDefaultHttpInvoker;
 import org.nuxeo.ecm.core.test.CoreFeature;
@@ -694,6 +703,63 @@ public class CmisSuiteSession {
             assertEquals("image/png", cs.getMimeType());
             assertTrue(cs.getFileName().endsWith(".png"));
             assertEquals(THUMBNAIL_SIZE, cs.getLength());
+        }
+    }
+
+    @Test
+    @Deploy("org.nuxeo.ecm.core.opencmis.tests.tests:OSGI-INF/test-lazy-rendition-contrib.xml")
+    public void testLazyRenditions() throws Exception {
+        assumeTrue(isAtomPub || isBrowser);
+
+        CmisObject ob = session.getObjectByPath("/testfolder1");
+
+        // check Cache Response Headers (eTag and Last-Modified)
+        RepositoryInfo ri = session.getRepositoryInfo();
+        String uri = ri.getThinClientUri() + ri.getId() + "/";
+        uri += isAtomPub ? "content?id=" : "root?objectId=";
+        uri += ob.getId();
+        uri += "&cmisselector=content&streamId=nuxeo:rendition:zipTreeExportLazily";
+        String encoding = Base64.encodeBytes(new String(USERNAME + ":" + PASSWORD).getBytes());
+        DefaultHttpClient client = new DefaultHttpClient();
+        HttpGet request = new HttpGet(uri);
+        HttpResponse response = null;
+        request.setHeader("Authorization", "Basic " + encoding);
+        try {
+            response = client.execute(request);
+            assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+//            assertNull(response.getFirstHeader("ETag"));
+            assertNull(response.getFirstHeader("Last-Modified"));
+        } finally {
+            client.getConnectionManager().shutdown();
+        }
+
+        // get renditions with object
+
+        session.clear();
+        OperationContext oc = session.createOperationContext();
+        oc.setRenditionFilterString("nuxeo:rendition:zipTreeExportLazily");
+        ob = session.getObject(session.createObjectId(ob.getId()), oc);
+        Rendition rendition = ob.getRenditions().get(0);
+        String contentMD5Hex = DigestUtils.md5Hex(rendition.getContentStream().getStream());
+        String expectedContentStreamHash = new ContentStreamHashImpl(
+                ContentStreamHashImpl.ALGORITHM_MD5, contentMD5Hex).toString();
+
+        client = new DefaultHttpClient();
+        try {
+            response = client.execute(request);
+            String content;
+            try (InputStream is = response.getEntity().getContent()) {
+                content = IOUtils.toString(is, StandardCharsets.UTF_8);
+            }
+            contentMD5Hex = DigestUtils.md5Hex(content);
+            String contentStreamHash = new ContentStreamHashImpl(
+                    ContentStreamHashImpl.ALGORITHM_MD5, contentMD5Hex).toString();
+            assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+            assertEquals(expectedContentStreamHash, response.getFirstHeader("ETag"));
+            assertNull(response.getFirstHeader("Last-Modified"));
+            assertEquals(expectedContentStreamHash, content);
+        } finally {
+            client.getConnectionManager().shutdown();
         }
     }
 
